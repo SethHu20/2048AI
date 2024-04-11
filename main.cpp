@@ -1,4 +1,7 @@
 #include "game.hpp"
+#include "bitboardgame.hpp"
+#include "engine.hpp"
+#include "lookuptables.hpp"
 #include <iostream>
 #include <vector>
 #include <string>
@@ -22,45 +25,92 @@ void playGame() {
   state.render();
   while (!state.gameOver()) {
     Direction dir = getInput();
-    if (state.makeMove(dir)) state.render();
+    if (state.makeMove(dir, true)) state.render();
   }
   cout << "Game over" << endl;
 }
 
-int totalGames = 10000;
+
+void playBitboardGame() {
+  BitboardGame state;
+  state.render();
+  while (!state.gameOver()) {
+    Direction dir = getInput();
+    if (state.makeMove(dir, true)) state.render();
+  }
+  cout << "Game over" << endl;
+}
+
+
+int totalGames = 1000000;
 
 void simulateGames() {
+  int t = totalGames;
+  clock_t start = clock();
   queue<Game> q;
   Game game(vector<vector<int>>(4, vector<int>(4, 0)));
   Direction dirs[] = {UP, DOWN, LEFT, RIGHT};
-  for (Game g : game.allPotentialSpawns()) q.push(g);
+  for (auto [g, p] : game.allPotentialSpawns()) q.push(g);
   while (!q.empty()) {
-    if (totalGames == 0) break;
-    totalGames--;
+    if (t == 0) break;
+    t--;
     Game cur = q.front(); q.pop();
     //cur.render();
     for (Direction dir : dirs) {
       Game temp = cur;
-      if (temp.makeMove(dir)) {
+      if (temp.makeMove(dir, true)) {
         q.push(temp);
       }
     }
   }
-}
 
-int main() {
-  //playGame();
-  clock_t start = clock();
-  simulateGames();
   clock_t end = clock();
   float duration = (float)(end - start) / (float)CLOCKS_PER_SEC;
   cout << duration << endl;
+}
 
-
-  __uint128_t initialFixed = 0;
-  __uint128_t initialSuperFixed = 0;
-  for (int i = 0; i < 4; i++) {
-    initialFixed |= ((__uint128_t)0b11111111 << 64);
+void simulateBitboardGames() {
+  int t = totalGames;
+  clock_t start = clock();
+  queue<BitboardGame> q;
+  BitboardGame game(0);
+  Direction dirs[] = {UP, DOWN, LEFT, RIGHT};
+  for (auto [g, p] : game.allPotentialSpawns()) q.push(g);
+  while (!q.empty()) {
+    if (t == 0) break;
+    t--;
+    BitboardGame cur = q.front(); q.pop();
+    //cur.render();
+    for (Direction dir : dirs) {
+      BitboardGame temp = cur;
+      if (temp.makeMove(dir, true)) {
+        q.push(temp);
+      }
+    }
   }
-  cout << (initialFixed > 0) << endl;
+
+  clock_t end = clock();
+  float duration = (float)(end - start) / (float)CLOCKS_PER_SEC;
+  cout << duration << endl;
+}
+
+void playEngine() {
+  Engine engine;
+  BitboardGame game;
+  while (!game.gameOver()) {
+    Direction dir = engine.makeMove(game, 3);
+    if (dir != NONE) game.makeMove(dir, true);
+    game.render();
+    cout << game.gameOver() << endl;
+  }
+}
+
+int main() {
+  Lookup::generateLookupTables();
+
+  //playGame();
+  //playBitboardGame();
+  //simulateGames();
+  //simulateBitboardGames();
+  playEngine();
 }

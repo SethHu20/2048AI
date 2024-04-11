@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <vector>
 #include <string>
@@ -7,21 +8,22 @@ enum Direction {
   LEFT,
   RIGHT,
   UP,
-  DOWN
+  DOWN,
+  NONE
 };
 
 class Game {
   private:
-  vector<vector<int>> board;
   void spawn();
   vector<int> merge(vector<int>& row);
   void shift(Direction dir);
 
   public:
+  vector<vector<int>> board;
   Game();
   Game(vector<vector<int>> board);
-  vector<Game> allPotentialSpawns();
-  bool makeMove(Direction dir);
+  vector<pair<Game, float>> allPotentialSpawns();
+  bool makeMove(Direction dir, bool spawnAfter);
   bool gameOver();
   void render();
 };

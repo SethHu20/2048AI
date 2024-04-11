@@ -84,22 +84,26 @@ void Game::spawn() {
     }
   }
   int r = rand() % possibleSpawns.size();
-  board[possibleSpawns[r].first][possibleSpawns[r].second] = rand() % 2 + 1;
+  int z = rand() % 10;
+  board[possibleSpawns[r].first][possibleSpawns[r].second] = (z == 0) + 1;
 }
 
-vector<Game> Game::allPotentialSpawns() {
-  vector<Game> res;
+vector<pair<Game, float>> Game::allPotentialSpawns() {
+  vector<pair<Game, float>> res;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
       if (board[i][j] == 0) {
-        vector<vector<int>> a = this->board;
-        vector<vector<int>> b = this->board;
+        vector<vector<int>> a = board;
+        vector<vector<int>> b = board;
         a[i][j] = 1;
         b[i][j] = 2;
-        res.push_back(Game(a));
-        res.push_back(Game(b));
+        res.push_back({Game(a), 0.9f});
+        res.push_back({Game(b), 0.1f});
       }
     }
+  }
+  for (int i = 0; i < res.size(); i++) {
+    res[i].second /= (res.size() / 2);
   }
   return res;
 }
@@ -123,7 +127,7 @@ vector<int> Game::merge(vector<int>& row) {
   return temp;
 }
 
-bool Game::makeMove(Direction dir) {
+bool Game::makeMove(Direction dir, bool spawnAfter) {
   vector<vector<int>> oldBoard = board;
   shift(dir);
   bool changed = false;
@@ -135,7 +139,7 @@ bool Game::makeMove(Direction dir) {
     }
   }
   if (changed) {
-    spawn();
+    if (spawnAfter) spawn();
     return true;
   }
   return false;

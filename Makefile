@@ -1,2 +1,2 @@
 a: *.cpp
-	g++ *.cpp -g -O2 -o a
+	g++ *.cpp -O3 -o a

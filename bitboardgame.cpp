@@ -1,131 +1,156 @@
-// #include "bitboardgame.hpp"
-// #include <iostream>
-// #include <vector>
-// #include <string>
-// using namespace std;
+#include "bitboardgame.hpp"
+#include <iostream>
+#include <vector>
+#include <string>
 
-// #define u128 __uint128_t
+inline int BitboardGame::indexToShift(int i, int j) {
+  return (4 * i + j) * 5;
+}
+
+int BitboardGame::indexBoard(int i, int j, u128 board) {
+  int shift = indexToShift(i, j);
+  int res = (board >> shift) & 0b11111;
+  return res;
+}
+
+int BitboardGame::indexBoard(int i, int j) {
+  int shift = indexToShift(i, j);
+  int res = (board >> shift) & 0b11111;
+  return res;
+}
+
+u128 BitboardGame::transpose(u128 board) {
+  u128 res = 0;
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      int val = indexBoard(j, i, board);
+      res |= ((u128)val << (indexToShift(i, j)));
+    }
+  }
+  return res;
+}
+
+BitboardGame::BitboardGame() {
+  board = 0;
+  srand(time(NULL));
+  spawn();
+}
+
+BitboardGame::BitboardGame(u128 board) {
+  this->board = board;
+  srand(time(NULL));
+}
 
 
-// inline int BitboardGame::indexToShift(int i, int j) {
-//   return (15 - (4 * i + j)) * 8;
-// }
+void BitboardGame::render() {
+  for (int i = 0; i < 10; i++) cout << "\n";
+  for (int i = 3; i >= 0; i--) {
+    for (int j = 0; j < 4 * 5 + 1; j++) cout << '-';
+    cout << "\n";
+    for (int j = 3; j >= 0; j--) {
+      int x = indexBoard(i, j, board);
+      if (x == 0 )      cout << "|    ";
+      else if (x >= 10) cout << "| " << x << " ";
+      else                        cout << "|  " << x << " ";
+    }
+    cout << "|\n";
+  }
+  for (int j = 0; j < 4 * 5 + 1; j++) cout << '-';
+  cout << endl;
+}
 
-// inline int BitboardGame::indexBoard(int i, int j) {
-//   int shift = indexToShift(i, j);
-//   int res = (board >> shift) & 0b11111111;
-//   return res;
-// }
+void BitboardGame::shift(Direction dir) {
+  if (dir == UP) {
+    u128 res = 0;
+    u128 transposed = transpose(board);
+    for (int i = 0; i < 4; i++) {
+      u32 row = (transposed >> (i * 20)) & 0b11111111111111111111;
+      u32 shifted = Lookup::leftShifts[row];
+      res |= ((u128)shifted << (i * 20));
+    }
+    board = transpose(res);
+  }
+  else if (dir == DOWN) {
+    u128 res = 0;
+    u128 transposed = transpose(board);
+    for (int i = 0; i < 4; i++) {
+      u32 row = (transposed >> (i * 20)) & 0b11111111111111111111;
+      u32 shifted = Lookup::rightShifts[row];
+      res |= ((u128)shifted << (i * 20));
+    }
+    board = transpose(res);
+  }
+  else if (dir == LEFT) {
+    u128 res = 0;
+    for (int i = 0; i < 4; i++) {
+      u32 row = (board >> (i * 20)) & 0b11111111111111111111;
+      u32 shifted = Lookup::leftShifts[row];
+      res |= ((u128)shifted << (i * 20));
+    }
+    board = res;
+  }
+  else if (dir == RIGHT) {
+    u128 res = 0;
+    for (int i = 0; i < 4; i++) {
+      u32 row = (board >> (i * 20)) & 0b11111111111111111111;
+      u32 shifted = Lookup::rightShifts[row];
+      res |= ((u128)shifted << (i * 20));
+    }
+    board = res;
+  }
+}
 
-// BitboardGame::BitboardGame() {
-//   board = 0;
-//   srand(time(NULL));
-//   spawn();
-// }
+bool BitboardGame::gameOver() {
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      if (indexBoard(i, j, board) == 0) return false;
+      if ((i != 3 && indexBoard(i, j, board) == indexBoard(i + 1, j, board)) || (j != 3 && indexBoard(i, j, board) == indexBoard(i, j + 1, board))) return false;
+    }
+  }
+  return true;
+}
 
-// BitboardGame::BitboardGame(u128 board) {
-//   this->board = board;
-//   srand(time(NULL));
-// }
+void BitboardGame::spawn() {
+  vector<pair<int, int>> possibleSpawns;
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      if (indexBoard(i, j, board) == 0) possibleSpawns.push_back({i, j});
+    }
+  }
+  int r = rand() % possibleSpawns.size();
+  int z = rand() % 10;
+  int shift = indexToShift(possibleSpawns[r].first, possibleSpawns[r].second);
+  int toSpawn = (z == 0) + 1;
+  board |= ((u128)toSpawn << shift);
+}
 
+vector<pair<BitboardGame, float>> BitboardGame::allPotentialSpawns() {
+  vector<pair<BitboardGame, float>> res;
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      if (this->indexBoard(i, j) == 0) {
+        u128 a = board;
+        u128 b = board;
+        int shift = indexToShift(i, j);
+        a |= ((u128)1 << shift);
+        b |= ((u128)2 << shift);
+        res.push_back({BitboardGame(a), 0.9f});
+        res.push_back({BitboardGame(b), 0.1f});
+      }
+    }
+  }
+  for (int i = 0; i < res.size(); i++) {
+    res[i].second /= (res.size() / 2);
+  }
+  return res;
+}
 
-// void BitboardGame::render() {
-//   for (int i = 0; i < 50; i++) cout << "\n";
-//   for (int i = 0; i < 4; i++) {
-//     for (int j = 0; j < 4 * 5 + 1; j++) cout << '-';
-//     cout << "\n";
-//     for (int j = 0; j < 4; j++) {
-//       int x = indexBoard(i, j);
-//       if (x == 0 )      cout << "|    ";
-//       else if (x >= 10) cout << "| " << x << " ";
-//       else                        cout << "|  " << x << " ";
-//     }
-//     cout << "|\n";
-//   }
-//   for (int j = 0; j < 4 * 5 + 1; j++) cout << '-';
-//   cout << endl;
-// }
-
-// void BitboardGame::shift(Direction dir) {
-//   vector<int> temp;
-//   if (dir == UP) {
-//   }
-//   else if (dir == DOWN) {
-//   }
-//   else if (dir == LEFT) {
-//     u128 fixed = ~(u128)0;
-//     u128 superFixed = ~(u128)0;
-//     for (int i = 0; i < 4; i++) {
-//       fixed &= ~((u128)0b11111111 << indexToShift(i, 0));
-//     }
-//     for (int i = 0; i < 4; i++) { //we need to shift at most 4 times
-//       u128 toShift = board & fixed;
-//       u128 shifted = toShift << 8;
-//       //00 11 11 11 (fixed)
-//       //11 11 11 11 (superFixed)
-//       //01 01 00 10 (toShift)
-//       //01 00 10 00 (shifted)
-//       //toShift & shifted
-//       //01 00 00 00 //how the fuck do we turn this 01 into 10
-//     }
-//   }
-//   else if (dir == RIGHT) {
-//   }
-// }
-
-// bool BitboardGame::gameOver() {
-//   for (int i = 0; i < 4; i++) {
-//     for (int j = 0; j < 4; j++) {
-//       if (board[i][j] == 0) return false;
-//       if ((i != 3 && board[i][j] == board[i + 1][j]) || (j != 3 && board[i][j] == board[i][j + 1])) return false;
-//     }
-//   }
-//   return true;
-// }
-
-// void BitboardGame::spawn() {
-//   vector<pair<int, int>> possibleSpawns;
-//   for (int i = 0; i < 4; i++) {
-//     for (int j = 0; j < 4; j++) {
-//       if (board[i][j] == 0) possibleSpawns.push_back({i, j});
-//     }
-//   }
-//   int r = rand() % possibleSpawns.size();
-//   board[possibleSpawns[r].first][possibleSpawns[r].second] = rand() % 2 + 1;
-// }
-
-// vector<BitboardGame> BitboardGame::allPotentialSpawns() {
-//   vector<Game> res;
-//   for (int i = 0; i < 4; i++) {
-//     for (int j = 0; j < 4; j++) {
-//       if (board[i][j] == 0) {
-//         vector<vector<int>> a = this->board;
-//         vector<vector<int>> b = this->board;
-//         a[i][j] = 1;
-//         b[i][j] = 2;
-//         res.push_back(Game(a));
-//         res.push_back(Game(b));
-//       }
-//     }
-//   }
-//   return res;
-// }
-
-// bool BitboardGame::makeMove(Direction dir) {
-//   vector<vector<int>> oldBoard = board;
-//   shift(dir);
-//   bool changed = false;
-//   for (int i = 0; i < 4; i++) {
-//     for (int j = 0; j < 4; j++) {
-//       if (board[i][j] != oldBoard[i][j]) {
-//         changed = true;
-//       }
-//     }
-//   }
-//   if (changed) {
-//     spawn();
-//     return true;
-//   }
-//   return false;
-
-// }
+bool BitboardGame::makeMove(Direction dir, bool spawnAfter) {
+  u128 oldBoard = board;
+  shift(dir);
+  if (oldBoard != board) {
+    if (spawnAfter) spawn();
+    return true;
+  }
+  return false;
+}
