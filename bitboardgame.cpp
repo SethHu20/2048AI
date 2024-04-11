@@ -19,26 +19,36 @@ int BitboardGame::indexBoard(int i, int j) {
   return res;
 }
 
+const u128 tpMat1 = ((u128) 0b1111100000000000 << 64) | 0b0000000001111100000000000000000000111110000000000000000000011111;
+const u128 tpMat2 = ((u128) 0b0000011111000000 << 64) | 0b0000000000000011111000000000000000000001111100000000000000000000;
+const u128 tpMat3 = ((u128) 0b0000000000000000 << 64) | 0b0000111110000000000000000000011111000000000000000000001111100000;
+const u128 tpMat4 = ((u128) 0b0000000000111110 << 64) | 0b0000000000000000000111110000000000000000000000000000000000000000;
+const u128 tpMat5 = ((u128) 0b0000000000000000 << 64) | 0b0000000000000000000000000000000000000000000011111000000000000000;
+const u128 tpMat6 = ((u128) 0b0000000000000000 << 64) | 0b0000000000000000000000001111100000000000000000000111110000000000;
+const u128 tpMat7 = ((u128) 0b0000000000000001 << 64) | 0b1111000000000000000000000000000000000000000000000000000000000000;
+
 u128 BitboardGame::transpose(u128 board) {
-  u128 res = 0;
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      int val = indexBoard(j, i, board);
-      res |= ((u128)val << (indexToShift(i, j)));
-    }
-  }
+  u128 res = 
+     (board & tpMat1)
+  | ((board & tpMat2) >> (3 * 5))
+  | ((board & tpMat3) << (3 * 5))
+  | ((board & tpMat4) >> (6 * 5))
+  | ((board & tpMat5) << (9 * 5))
+  | ((board & tpMat6) << (6 * 5))
+  | ((board & tpMat7) >> (9 * 5));
+
   return res;
 }
 
 BitboardGame::BitboardGame() {
   board = 0;
-  srand(time(NULL));
+  // srand(time(NULL));
   spawn();
 }
 
 BitboardGame::BitboardGame(u128 board) {
   this->board = board;
-  srand(time(NULL));
+  // srand(time(NULL));
 }
 
 

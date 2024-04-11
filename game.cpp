@@ -6,13 +6,13 @@ using namespace std;
 
 Game::Game() {
   board = vector<vector<int>>(4, vector<int>(4, 0));
-  srand(time(NULL));
+  // srand(time(NULL));
   spawn();
 }
 
 Game::Game(vector<vector<int>> board) {
   this->board = board;
-  srand(time(NULL));
+  // srand(time(NULL));
 }
 
 
